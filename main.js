@@ -1,55 +1,102 @@
 class TodoApp {
-  dispose(){
+  execute() {
+    const store = new Store();
+    const taskManager = new TaskManager(store);
+    const render = new Render();
+    const toDo = new TODO(taskManager, render);
+    const titleInputRef = document.getElementById("task-title");
+    const createTaskBtnRef = document.getElementById("task-create-button");
+
+    createTaskBtnRef.addEventListener('click', () => {
+      toDo.addTask(titleInputRef.value);
+    });
+  }
+}
+
+class TODO{
+  constructor(taskManager, render){
+    this._taskManager = taskManager;
+    this._render = render;
+  }
+
+  init(){
 
   }
 
-  execute() {
-
+  addTask(title){
+    const task = this._taskManager.createTask(title);
+    this._render.renderTask(task);
   }
 }
 
 class TaskManager {
-  constructor(task, render, stor){
-      this.render = render;
-      this.stor = store;
-      this.task = task;
+  constructor(store){
+      this._store = store;
   }
-  creatTask() {
-    this.task = new Task();
-  }
-
-  removeTask(id){
+  getTasks(){
 
   }
-
-  updateTask(id) {
-      
+  createTask(title){
+    const id = Math.random().toString(36).substr(2, 16);
+    const task = new Task(id, title);
+    this._store.saveTask(task);
+    return this._store;
   }
+
 }
 
 class Task {
-  constructor(title){
-      this._id = this.getRandomId();
-      this._title = title;
+  constructor(id, title){
+    this._id = id;
+    this._title = title;
+    this._isDone = false;
+    this._creationMoment = Date.now();
   }
-  getRandomId() {
-      return `'_${Math.random().toString(36).substr(2, 12)}'`;
-  }
-  get id () {
+
+  get id (){
     return this._id
   }
-  isDone() {
-      return false;
+  get title (){
+    return this._title
   }
-  toggle() {
+  get isDone (){
+    return this._isDone
+  }
+  get creationMoment (){
+    return this._creationMoment
+  }
+  toggle(){
+    this._isDone = !this._isDone;
+  }
+  static toJSON(task){
+    return JSON.stringify({
+      id:  task.id,
+      title:  task.title,
+      isDone:  task.false,
+      creationMoment: 
+    })
+  }
+}
 
+class Render {
+  renderTask(task){
+    console.log(task);
   }
 }
 
 class Store {
+  constructor(){
+    this._store = [];
+  }
+  getTasks() {
 
+  }
+  saveTask (task){
+    this._store.push(task);
+    return task;
+  }
+  getTasks
 }
 
-const toDo = new Task();
-
-console.log(toDo.id);
+const app = new TodoApp();
+app.execute();
