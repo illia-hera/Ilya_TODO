@@ -1,7 +1,8 @@
 class TodoApp {
   execute() {
-    const store = new StoreLS();
-    
+    debugger
+    const store = new Store();
+
     const taskManager = new TaskManager(store);
     const render = new Render();
     const toDo = new TODO(taskManager, render);
@@ -16,38 +17,41 @@ class TodoApp {
     debugBtnRef.addEventListener('click', () => {
       toDo.init();
     });
-
-    toDo.init()
   }
 }
 
-class TODO{
-  constructor(taskManager, render){
+
+class TODO {
+  constructor(taskManager, render) {
     this._taskManager = taskManager;
     this._render = render;
   }
 
-  init(){
+  init() {
     const tasks = this._taskManager.getTasks();
     tasks.forEach(task => {
       this._render.renderTask(task);
     });
   }
-
-  addTask(title){
+  addTask(title) {
     const task = this._taskManager.createTask(title);
     this._render.renderTask(task);
   }
 }
 
+
 class TaskManager {
-  constructor(store){
-      this._store = store;
+  constructor(store) {
+    if (!(store instanceof AbstractStore)) {
+      throw new Error('stor should implements AbstractStore interface')
+    }
+    this._store = store;
   }
-  getTasks(){
+
+  getTasks() {
     return this._store.getTasks();
   }
-  createTask(title){
+  createTask(title) {
     const id = Math.random().toString(36).substr(2, 16);
     const task = new Task(id, title);
     return this._store.saveTask(task);
@@ -60,93 +64,153 @@ class Task {
     title,
     isDone = false,
     creationMoment = Date.now()
-    ){
+  ) {
     this._id = id;
     this._title = title;
     this._isDone = isDone;
     this._creationMoment = creationMoment;
   }
 
-  get id (){
+  get id() {
     return this._id
   }
-  get title (){
+  get title() {
     return this._title
   }
-  get isDone (){
+  get isDone() {
     return this._isDone
   }
-  get creationMoment (){
+  get creationMoment() {
     return this._creationMoment
   }
-  toggle(){
+  toggle() {
     this._isDone = !this._isDone;
   }
 
-  static toJSON(task){
+  static toJSON(task) {
     return JSON.stringify({
-      id:  task.id,
-      title:  task.title,
-      isDone:  task.isDone,
+      id: task.id,
+      title: task.title,
+      isDone: task.isDone,
       creationMoment: task.creationMoment
     })
   }
 
   static fromJSON(json) {
-    const obj = JSON.parse(json);
+    let obj = null;
+    try {
+      obj = JSON.parse(json);
+    } catch (error) {
+      throw new Error(`invalid json: ${json}`, error.message);
+    }
+
     return new Task(
       obj.id,
       obj.title,
       obj.isDone,
       obj.creationMoment
     );
-    
+
   }
 }
 
+
 class Render {
-  renderTask(task){
+  renderTask(task) {
     console.log(task);
   }
 }
 
+
 class AbstractStore {
-  getTasks(){
+  getTasks() {
     throw new Error('not implemented')
   }
-  saveTasks(task){
+  saveTasks(task) {
     throw new Error('not implemented')
   }
 }
 
+
 class Store extends AbstractStore {
-  constructor(){
+  constructor() {
     super();
     this._store = [];
   }
-  getTasks() {
-    return this._store
-    .map(task => Task.fromJSON(Task.toJSON(task)))
+
+  getTask(id) {
+    const task = this._store.find(task => task.id === id)
+
+    if (!task) {
+      throw new Error(`there is no task with id = ${id}`)
+    }
+    let taskCope = null;
+    try {
+      taskCope = Task.fromJSON(Task.toJSON(task));
+    } catch (error) {
+      throw new Error(`inpossible get task with id = ${id}`, error.message)
+    }
+
+    return taskCope;
   }
-  saveTask (task){
+
+  getTasks() {
+
+    return this._store
+      .map(task => {
+        let taskCope = null;
+        try {
+          taskCope = Task.fromJSON(Task.toJSON(task));
+        } catch (error) {
+          throw new Error(`inpossible get task with id = ${id}`, error.message);
+        }
+        return taskCope;
+      });
+  }
+  saveTask(task) {
     this._store.push(task);
     return task;
   }
 }
 
+
 class StoreLS extends AbstractStore {
-  constructor(){
+  constructor() {
     super();
     this.prefix = 'strLS'
   }
 
-  getTasks(){
+  getTask(id) {
+    const key = `${this.prefix}${task.id}`;
+    const taskJson = localStorage.getItem(key);
+    if (!taskJson) {
+      throw new Error(`there is no task with id = ${id}`)
+    }
+
+    let task = null
+
+    try {
+      task = Task.fromJSON(taskJson);
+    } catch (error) {
+      throw new Error(`inpossible get task with id = ${id}`, error.message)
+    }
+
+    return task;
+  }
+
+  getTasks() {
     const tasks = [];
     for (let index = 0; index < localStorage.length; index++) {
       const key = localStorage.key(index);
-      
-      if(key.includes(this._prefix)) {
-        const task = Task.fromJSON(localStorage.getItem(key));
+
+      if (key.includes(this.prefix)) {
+        let task = null
+
+        try {
+          task = Task.fromJSON(localStorage.getItem(key));
+        } catch (error) {
+          throw new Error(`inpossible get task with id = ${id}`, error.message)
+        }
         tasks.push(task);
       }
     }
@@ -157,7 +221,16 @@ class StoreLS extends AbstractStore {
     const key = `${this.prefix}${task.id}`;
     const json = Task.toJSON(task);
     localStorage.setItem(key, json);
-    return Task.fromJSON(localStorage.getItem(key));
+
+    let taskCope = null
+
+    try {
+      taskCope = Task.fromJSON(localStorage.getItem(key));
+    } catch (error) {
+      throw new Error(`inpossible get task with id = ${id}`, error.message)
+    }
+
+    return taskCope;
   }
 }
 
