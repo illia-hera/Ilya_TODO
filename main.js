@@ -1,6 +1,5 @@
 class TodoApp {
   execute() {
-    debugger
     const store = new Store();
 
     const taskManager = new TaskManager(store);
@@ -9,6 +8,8 @@ class TodoApp {
     const titleInputRef = document.getElementById("task-title");
     const createTaskBtnRef = document.getElementById("task-create-button");
     const debugBtnRef = document.getElementById("task-debug-button");
+    const delBtnRef = document.getElementById("task-deleteAll-button");
+    const toggleBtnRef = document.getElementById("task-toggleAll-button");
 
     createTaskBtnRef.addEventListener('click', () => {
       toDo.addTask(titleInputRef.value);
@@ -16,6 +17,14 @@ class TodoApp {
 
     debugBtnRef.addEventListener('click', () => {
       toDo.init();
+    });
+
+    delBtnRef.addEventListener('click', () => {
+      toDo.deleteAll();
+    });
+
+    toggleBtnRef.addEventListener('click', () => {
+      toDo.updateTasks();
     });
   }
 }
@@ -33,6 +42,16 @@ class TODO {
       this._render.renderTask(task);
     });
   }
+
+  deleteAll() {
+    this._taskManager.removeTasks();
+    this._render.clear();
+  }
+
+  updateTasks() {
+    this._taskManager.updateTasks()
+  }
+
   addTask(title) {
     const task = this._taskManager.createTask(title);
     this._render.renderTask(task);
@@ -57,7 +76,16 @@ class TaskManager {
     return this._store.saveTask(task);
   }
 
+  removeTasks() {
+    return this._store.removeTasks()
+  }
+
+  updateTasks() {
+    this._store.updateTasks();
+  };
 }
+
+
 
 class Task {
   constructor(id,
@@ -83,6 +111,7 @@ class Task {
   get creationMoment() {
     return this._creationMoment
   }
+
   toggle() {
     this._isDone = !this._isDone;
   }
@@ -110,7 +139,6 @@ class Task {
       obj.isDone,
       obj.creationMoment
     );
-
   }
 }
 
@@ -118,6 +146,9 @@ class Task {
 class Render {
   renderTask(task) {
     console.log(task);
+  }
+  clear() {
+    console.clear();
   }
 }
 
@@ -130,7 +161,6 @@ class AbstractStore {
     throw new Error('not implemented')
   }
 }
-
 
 class Store extends AbstractStore {
   constructor() {
@@ -155,7 +185,6 @@ class Store extends AbstractStore {
   }
 
   getTasks() {
-
     return this._store
       .map(task => {
         let taskCope = null;
@@ -167,6 +196,25 @@ class Store extends AbstractStore {
         return taskCope;
       });
   }
+
+  removeTasks() {
+    return this._store = [];
+  }
+
+  updateTasks() {
+    let obj = null;
+    debugger
+    try {
+      obj = Task.fromJSON(Task.toJSON(this._store));
+    } catch (error) {
+      throw new Error(`inpossible get task with id = ${id}`, error.message);
+    }
+    this._store.removeTasks();
+    obj.forEach(task => {
+      obj[task].Task.toggle();
+    });
+  }
+
   saveTask(task) {
     this._store.push(task);
     return task;
@@ -231,6 +279,14 @@ class StoreLS extends AbstractStore {
     }
 
     return taskCope;
+  }
+
+  updateTasks() {
+
+  }
+
+  removeTasks() {
+    return localStorage.clear();
   }
 }
 
