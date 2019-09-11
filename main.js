@@ -112,8 +112,12 @@ class Task {
     return this._creationMoment
   }
 
-  toggle() {
-    this._isDone = !this._isDone;
+  toggle(task) {
+    return task._isDone === false 
+    ? task._isDone = true 
+    : task._isDone = false
+   
+
   }
 
   static toJSON(task) {
@@ -184,7 +188,7 @@ class Store extends AbstractStore {
     return taskCope;
   }
 
-  getTasks() {
+  getTasks() {   
     return this._store
       .map(task => {
         let taskCope = null;
@@ -202,25 +206,29 @@ class Store extends AbstractStore {
   }
 
   updateTasks() {
-    let obj = null;
     debugger
-    try {
-      obj = Task.fromJSON(Task.toJSON(this._store));
-    } catch (error) {
-      throw new Error(`inpossible get task with id = ${id}`, error.message);
+    const updatidTasks = [];
+    for (const key in this._store) {
+      let taskCope = null;
+      try {
+        taskCope = Task.fromJSON(Task.toJSON(this._store[key]));
+      } catch (error) {
+        throw new Error(`inpossible get task with id = ${id}`, error.message);
+      }
+      updatidTasks.push(Task.toggle(taskCope));
     }
-    this._store.removeTasks();
-    obj.forEach(task => {
-      obj[task].Task.toggle();
-    });
+    this.removeTasks();
+    this._store = updatidTasks;
+    return this._store;
   }
+
 
   saveTask(task) {
     this._store.push(task);
     return task;
   }
-}
 
+};
 
 class StoreLS extends AbstractStore {
   constructor() {
