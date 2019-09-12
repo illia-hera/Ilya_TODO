@@ -9,7 +9,7 @@ class TodoApp {
     const createTaskBtnRef = document.getElementById("task-create-button");
     const debugBtnRef = document.getElementById("task-debug-button");
     const delBtnRef = document.getElementById("task-deleteAll-button");
-    const toggleBtnRef = document.getElementById("task-toggleAll-button");
+    const toggleAllBtnRef = document.getElementById("task-toggleAll-button");
 
     createTaskBtnRef.addEventListener('click', () => {
       toDo.addTask(titleInputRef.value);
@@ -23,7 +23,7 @@ class TodoApp {
       toDo.deleteAll();
     });
 
-    toggleBtnRef.addEventListener('click', () => {
+    toggleAllBtnRef.addEventListener('click', () => {
       toDo.updateTasks();
     });
   }
@@ -49,7 +49,12 @@ class TODO {
   }
 
   updateTasks() {
-    this._taskManager.updateTasks()
+    this._taskManager.getTasks()
+      .forEach(task => {
+        debugger
+        this._taskManager.updateTask(task);
+        this._render.renderTask(task);
+      });
   }
 
   addTask(title) {
@@ -80,8 +85,9 @@ class TaskManager {
     return this._store.removeTasks()
   }
 
-  updateTasks() {
-    this._store.updateTasks();
+  updateTask(task) {
+    task.toggle();
+    return this._store.updateTask(task);
   };
 }
 
@@ -112,11 +118,9 @@ class Task {
     return this._creationMoment
   }
 
-  toggle(task) {
-    return task._isDone === false 
-    ? task._isDone = true 
-    : task._isDone = false
-   
+  toggle() {
+    return this._isDone = !this._isDone
+
 
   }
 
@@ -188,7 +192,7 @@ class Store extends AbstractStore {
     return taskCope;
   }
 
-  getTasks() {   
+  getTasks() {
     return this._store
       .map(task => {
         let taskCope = null;
@@ -201,27 +205,24 @@ class Store extends AbstractStore {
       });
   }
 
+  updateTask(newTask) {
+    this._store
+      .find(oldTask => {
+        const oldTaskIndex = this._store.indexOf(oldTask)
+        if (oldTask._id === newTask._id) {
+          this.removeTask(oldTaskIndex);
+          return this._store[oldTaskIndex] = newTask;
+        }
+      });
+  }
+
   removeTasks() {
     return this._store = [];
   }
 
-  updateTasks() {
-    debugger
-    const updatidTasks = [];
-    for (const key in this._store) {
-      let taskCope = null;
-      try {
-        taskCope = Task.fromJSON(Task.toJSON(this._store[key]));
-      } catch (error) {
-        throw new Error(`inpossible get task with id = ${id}`, error.message);
-      }
-      updatidTasks.push(Task.toggle(taskCope));
-    }
-    this.removeTasks();
-    this._store = updatidTasks;
-    return this._store;
+  removeTask(key) {
+    return delete this._store[key];
   }
-
 
   saveTask(task) {
     this._store.push(task);
