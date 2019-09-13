@@ -177,59 +177,72 @@ class Store extends AbstractStore {
   }
 
   getTask(id) {
-    const task = this._store.find(task => task.id === id)
+    return new Promise((resolve, reject) => {
+      const task = this._store.find(task => task.id === id)
 
-    if (!task) {
-      throw new Error(`there is no task with id = ${id}`)
-    }
-    let taskCopy = null;
-    try {
-      taskCopy = Task.fromJSON(Task.toJSON(task));
-    } catch (error) {
-      throw new Error(`inpossible get task with id = ${id}`, error.message)
-    }
+      if (!task) {
+        return reject(new Error(`there is no task with id = ${id}`))
+      }
+      let taskCopy = null;
+      try {
+        taskCopy = Task.fromJSON(Task.toJSON(task));
+      } catch (error) {
+        reject(new Error(`inpossible get task with id = ${id}`, error.message))
+      }
 
-    return taskCopy;
+      return resolve(taskCopy);
+    })
   }
 
   getTasks() {
-    return this._store
-      .map(task => {
-        let taskCopy = null;
-        try {
-          taskCopy = Task.fromJSON(Task.toJSON(task));
-        } catch (error) {
-          throw new Error(`inpossible get task with id = ${id}`, error.message);
-        }
-        return taskCopy;
-      });
+    return new Promise((resolve, reject) => {
+      this._store
+        .map(task => {
+          let taskCopy = null;
+          try {
+            taskCopy = Task.fromJSON(Task.toJSON(task));
+          } catch (error) {
+            return reject(new Error(`inpossible get task with id = ${id}`, error.message));
+          }
+          return resolve(taskCopy);
+        });
+    })
   }
 
   updateTask(newTask) {
-    this.removeTask(this.getTask(newTask.id))
-    return this.saveTask(newTask)
+    return new Promise((resolve) => {
+      this.removeTask(this.getTask(newTask.id))
+      return resolve(this.saveTask(newTask))
+    })
+
   }
 
   getTaskIndexInStore(task) {
-    const index = this._store
-    .indexOf(this._store.find(
-      taskInStore => {
-        if (task.id === taskInStore.id){
-          return taskInStore
-        }
-    }))
-    return index;
+    return new Promise((resolve) => {
+      const index = this._store
+        .indexOf(this._store.find(
+          taskInStore => {
+            if (task.id === taskInStore.id) {
+              return taskInStore
+            }
+          }))
+      return resolve(index);
+    })
   }
 
   removeTask(task) {
-    // delete this._store[this.getTaskIndex(task)];
-    this._store.splice(this.getTaskIndexInStore(task), 1);
-    return `Task with title: '${task.title}' was deleted`;
+    return new Promise((resolve) => {
+      // delete this._store[this.getTaskIndex(task)];
+      this._store.splice(this.getTaskIndexInStore(task), 1);
+      return resolve(`Task with title: '${task.title}' was deleted`);
+    })
   }
 
   saveTask(task) {
-    this._store.push(task);
-    return task;
+    return new Promise((resolve) => {
+      this._store.push(task);
+      return resolve(task);
+    })
   }
 
 };
