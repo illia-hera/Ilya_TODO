@@ -24,7 +24,7 @@ class TodoApp {
     });
 
     toggleAllBtnRef.addEventListener('click', () => {
-      toDo.updateTasks();
+      toDo.updateAll();
     });
   }
 }
@@ -44,16 +44,16 @@ class TODO {
   }
 
   deleteAll() {
-    this._taskManager.removeTasks();
-    this._render.clear();
-  }
-
-  updateTasks() {
     this._taskManager.getTasks()
       .forEach(task => {
-        debugger
-        this._taskManager.updateTask(task);
-        this._render.renderTask(task);
+        this._render.renderTask(this._taskManager.removeTask(task));
+      });
+  }
+
+  updateAll() {
+    this._taskManager.getTasks()
+      .forEach(task => {
+        this._render.renderTask(this._taskManager.updateTask(task));
       });
   }
 
@@ -81,8 +81,8 @@ class TaskManager {
     return this._store.saveTask(task);
   }
 
-  removeTasks() {
-    return this._store.removeTasks()
+  removeTask(task) {
+    return this._store.removeTask(task)
   }
 
   updateTask(task) {
@@ -182,46 +182,49 @@ class Store extends AbstractStore {
     if (!task) {
       throw new Error(`there is no task with id = ${id}`)
     }
-    let taskCope = null;
+    let taskCopy = null;
     try {
-      taskCope = Task.fromJSON(Task.toJSON(task));
+      taskCopy = Task.fromJSON(Task.toJSON(task));
     } catch (error) {
       throw new Error(`inpossible get task with id = ${id}`, error.message)
     }
 
-    return taskCope;
+    return taskCopy;
   }
 
   getTasks() {
     return this._store
       .map(task => {
-        let taskCope = null;
+        let taskCopy = null;
         try {
-          taskCope = Task.fromJSON(Task.toJSON(task));
+          taskCopy = Task.fromJSON(Task.toJSON(task));
         } catch (error) {
           throw new Error(`inpossible get task with id = ${id}`, error.message);
         }
-        return taskCope;
+        return taskCopy;
       });
   }
 
   updateTask(newTask) {
-    this._store
-      .find(oldTask => {
-        const oldTaskIndex = this._store.indexOf(oldTask)
-        if (oldTask._id === newTask._id) {
-          this.removeTask(oldTaskIndex);
-          return this._store[oldTaskIndex] = newTask;
+    this.removeTask(this.getTask(newTask.id))
+    return this.saveTask(newTask)
+  }
+
+  getTaskIndexInStore(task) {
+    const index = this._store
+    .indexOf(this._store.find(
+      taskInStore => {
+        if (task.id === taskInStore.id){
+          return taskInStore
         }
-      });
+    }))
+    return index;
   }
 
-  removeTasks() {
-    return this._store = [];
-  }
-
-  removeTask(key) {
-    return delete this._store[key];
+  removeTask(task) {
+    // delete this._store[this.getTaskIndex(task)];
+    this._store.splice(this.getTaskIndexInStore(task), 1);
+    return `Task with title: '${task.title}' was deleted`;
   }
 
   saveTask(task) {
@@ -238,7 +241,7 @@ class StoreLS extends AbstractStore {
   }
 
   getTask(id) {
-    const key = `${this.prefix}${task.id}`;
+    const key = `${this.prefix}${id}`;
     const taskJson = localStorage.getItem(key);
     if (!taskJson) {
       throw new Error(`there is no task with id = ${id}`)
@@ -279,23 +282,25 @@ class StoreLS extends AbstractStore {
     const json = Task.toJSON(task);
     localStorage.setItem(key, json);
 
-    let taskCope = null
+    let taskCopy = null
 
     try {
-      taskCope = Task.fromJSON(localStorage.getItem(key));
+      taskCopy = Task.fromJSON(localStorage.getItem(key));
     } catch (error) {
       throw new Error(`inpossible get task with id = ${id}`, error.message)
     }
 
-    return taskCope;
+    return taskCopy;
   }
 
-  updateTasks() {
-
+  updateTask(newTask) {
+    this.removeTask(this.getTask(newTask.id))
+    return this.saveTask(newTask)
   }
 
-  removeTasks() {
-    return localStorage.clear();
+  removeTask(task) {
+    localStorage.removeItem(`${this.prefix}${task.id}`);
+    return `Task with title: '${task.title}' was deleted`
   }
 }
 
