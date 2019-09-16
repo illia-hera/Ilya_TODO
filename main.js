@@ -1,6 +1,6 @@
 class TodoApp {
   execute() {
-    const store = new Store();
+    const store = new StoreJSON();
 
     const taskManager = new TaskManager(store);
     const render = new Render();
@@ -52,9 +52,9 @@ class TODO {
 
   async updateAll() {
     const tasks = await this._taskManager.getTasks();
-      tasks.forEach(task => {
-        this._taskManager.updateTask(task).then(task => this._render.renderTask(task) );
-      });
+    tasks.forEach(task => {
+      this._taskManager.updateTask(task).then(task => this._render.renderTask(task));
+    });
   }
 
   async addTask(title) {
@@ -120,8 +120,6 @@ class Task {
 
   toggle() {
     return this._isDone = !this._isDone
-
-
   }
 
   static toJSON(task) {
@@ -238,7 +236,7 @@ class StoreLS extends AbstractStore {
     try {
       task = Task.fromJSON(taskJson);
     } catch (error) {
-      return Promise.reject( new Error(`inpossible get task with id = ${id}`, error.message))
+      return Promise.reject(new Error(`inpossible get task with id = ${id}`, error.message))
     }
 
     return Promise.resolve(task);
@@ -255,7 +253,7 @@ class StoreLS extends AbstractStore {
         try {
           task = Task.fromJSON(localStorage.getItem(key));
         } catch (error) {
-          return Promise.reject( new Error(`inpossible get task with id = ${id}`, error.message))
+          return Promise.reject(new Error(`inpossible get task with id = ${id}`, error.message))
         }
         tasks.push(task);
       }
@@ -273,7 +271,7 @@ class StoreLS extends AbstractStore {
     try {
       taskCopy = Task.fromJSON(localStorage.getItem(key));
     } catch (error) {
-      return Promise.reject( new Error(`inpossible get task with id = ${id}`, error.message))
+      return Promise.reject(new Error(`inpossible get task with id = ${id}`, error.message))
     }
 
     return Promise.resolve(taskCopy);
@@ -288,6 +286,65 @@ class StoreLS extends AbstractStore {
     localStorage.removeItem(`${this.prefix}${task.id}`);
     return Promise.resolve(`Task with title: '${task.title}' was deleted`)
   }
+}
+
+class StoreJSON extends AbstractStore {
+  constructor() {
+    super();
+    this.headers = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Method': 'GET, POST, PUT, DELETE, PATCH'
+    }
+  }
+  
+   async saveTask(task) {
+    const response = await fetch(
+      `http://localhost:3000/tasks`,
+      {
+        headers: this.headers,
+        method: 'POST',
+        body: Task.toJSON(task)
+      }
+    );
+    return await response.json();
+  }
+
+  async getTask(id) {
+    const response = await fetch(`http://localhost:3000/tasks/${id}`);
+    return await response.json();
+  }
+
+  async getTasks() {
+    const response = await fetch('http://localhost:3000/tasks');
+    return await response.json()
+  };
+
+   async removeTask (task) {
+    const response = await fetch(
+      `http://localhost:3000/tasks/${task.id}`,
+      {
+        headers: this.headers,
+        method: 'DELETE'
+      }
+    );
+  
+    return await response.json();
+  }
+
+  async updateTask(task) {
+    const response = await fetch(
+      `http://localhost:3000/tasks/${task.id}`,
+      {
+        headers: this.headers,
+        method: 'PUT',
+        body: Task.toJSON(task)
+      }
+    );
+  
+    return await response.json() ;
+  }
+
 }
 
 
