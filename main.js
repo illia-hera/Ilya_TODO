@@ -72,13 +72,13 @@ class TaskManager {
   }
 
   async getTasks() {
-    return Promise.resolve(await this._store.getTasks());
+    return await this._store.getTasks();
   }
 
   async createTask(title) {
     const id = Math.random().toString(36).substr(2, 16);
     const task = new Task(id, title);
-    return Promise.resolve(await this._store.saveTask(task));
+    return await await this._store.saveTask(task);
   }
 
   async removeTask(task) {
@@ -159,6 +159,7 @@ class Task {
 }
 
 
+
 class Render {
   renderTask(task) {
     console.log(task);
@@ -167,6 +168,7 @@ class Render {
     console.clear();
   }
 }
+
 
 
 class AbstractStore {
@@ -178,34 +180,36 @@ class AbstractStore {
   }
 }
 
+
+
 class Store extends AbstractStore {
   constructor() {
     super();
     this._store = [];
   }
 
-  getTask(id) {
+  async getTask(id) {
     const task = this._store.find(task => task.id === id)
     if (!task) {
       return Promise.reject(new Error(`there is no task with id = ${id}`))
     }
-    return Promise.resolve(task.copy());
+
+    return  Promise.resolve(task.copy());
   }
 
-  getTasks() {
+  async getTasks() {
     return Promise.resolve(this._store
       .map(task => {
         return task.copy();
       }));
-
   }
 
   async updateTask(newTask) {
-    await this.removeTask(await this.getTask(newTask.id))
-    return Promise.resolve(this.saveTask(newTask))
+    await this.removeTask(await this.getTask(newTask.id));
+    return Promise.resolve(this.saveTask(newTask));
   }
 
-  async removeTask(task) {
+  removeTask(task) {
     this._store = this._store.filter(storeTask => storeTask.id !== task.id)
     return Promise.resolve(`Task with title: '${task.title}' was deleted`);
   }
@@ -218,19 +222,19 @@ class Store extends AbstractStore {
 
 
 
+
 class StoreLS extends AbstractStore {
   constructor() {
     super();
-    this.prefix = 'strLS'
+    this._prefix = 'strLS'
   }
 
-  getTask(id) {
-    const key = `${this.prefix}${id}`;
+  async getTask(id) {
+    const key = `${this._prefix}${id}`;
     const taskJson = localStorage.getItem(key);
     if (!taskJson) {
       return Promise.reject(new Error(`there is no task with id = ${id}`));
     }
-
     let task = null
 
     try {
@@ -239,7 +243,7 @@ class StoreLS extends AbstractStore {
       return Promise.reject(new Error(`inpossible get task with id = ${id}`, error.message))
     }
 
-    return Promise.resolve(task);
+    return Promise.resolve(task)
   }
 
   getTasks() {
@@ -247,7 +251,7 @@ class StoreLS extends AbstractStore {
     for (let index = 0; index < localStorage.length; index++) {
       const key = localStorage.key(index);
 
-      if (key.includes(this.prefix)) {
+      if (key.includes(this._prefix)) {
         let task = null
 
         try {
@@ -258,14 +262,14 @@ class StoreLS extends AbstractStore {
         tasks.push(task);
       }
     }
+
     return Promise.resolve(tasks);
   }
 
   saveTask(task) {
-    const key = `${this.prefix}${task.id}`;
+    const key = `${this._prefix}${task.id}`;
     const json = Task.toJSON(task);
     localStorage.setItem(key, json);
-
     let taskCopy = null
 
     try {
@@ -278,76 +282,78 @@ class StoreLS extends AbstractStore {
   }
 
   async updateTask(newTask) {
-    await this.removeTask(await this.getTask(newTask.id))
-    return Promise.resolve(await this.saveTask(newTask))
+    this.removeTask(await this.getTask(newTask.id))
+    return Promise.resolve(this.saveTask(newTask));
   }
 
   removeTask(task) {
-    localStorage.removeItem(`${this.prefix}${task.id}`);
-    return Promise.resolve(`Task with title: '${task.title}' was deleted`)
+    localStorage.removeItem(`${this._prefix}${task.id}`);
+
+    return Promise.resolve({});
   }
 }
 
 class StoreJSON extends AbstractStore {
   constructor() {
     super();
-    this.headers = {
+    this._headers = {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
       'Access-Control-Allow-Method': 'GET, POST, PUT, DELETE, PATCH'
     }
   }
-  
-   async saveTask(task) {
+
+  async saveTask(task) {
     const response = await fetch(
-      `http://localhost:3000/tasks`,
-      {
-        headers: this.headers,
+      `http://localhost:3000/tasks`, {
+        headers: this._headers,
         method: 'POST',
         body: Task.toJSON(task)
       }
     );
-    return await response.json();
+
+    return Promise.resolve(response.json());
   }
 
   async getTask(id) {
     const response = await fetch(`http://localhost:3000/tasks/${id}`);
-    return await response.json();
+    return Promise.resolve(Task.fromJSON(await resp.text(response.json())));
   }
 
   async getTasks() {
     const response = await fetch('http://localhost:3000/tasks');
-    return await response.json()
+    const tasks = [];
+    let tasksArr = await response.json();
+    tasksArr.forEach(taskProto => {
+        tasks.push(Task.fromJSON(JSON.stringify(taskProto)))
+    })
+
+    return Promise.resolve(tasks);
   };
 
-   async removeTask (task) {
+  async removeTask(task) {
     const response = await fetch(
-      `http://localhost:3000/tasks/${task.id}`,
-      {
-        headers: this.headers,
+      `http://localhost:3000/tasks/${task.id}`, {
+        headers: this._headers,
         method: 'DELETE'
       }
     );
-  
-    return await response.json();
+
+    return Promise.resolve(response.json());
   }
 
   async updateTask(task) {
     const response = await fetch(
-      `http://localhost:3000/tasks/${task.id}`,
-      {
-        headers: this.headers,
+      `http://localhost:3000/tasks/${task.id}`, {
+        headers: this._headers,
         method: 'PUT',
         body: Task.toJSON(task)
       }
     );
-  
-    return await response.json() ;
+
+    return Promise.resolve(response.json());
   }
-
 }
-
-
 
 const app = new TodoApp();
 app.execute();
